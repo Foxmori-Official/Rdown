@@ -1,0 +1,57 @@
+name: Verify and publish initial alpha
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: initial-alpha-${{ github.repository }}
+  cancel-in-progress: false
+jobs:
+  verify-and-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install source dependencies
+        run: |
+          npm ci --registry=https://registry.npmjs.org
+          npm --prefix server ci --registry=https://registry.npmjs.org
+          npm --prefix web ci --registry=https://registry.npmjs.org
+      - name: Test source and production bundle budgets
+        run: |
+          npm test
+          npm run test:web-build
+      - name: Materialize versioned artwork
+        run: |
+          node .publication/restore-assets.mjs
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- extension/icons/*.png extension/store/icon256.png web/public/*.png
+          if ! git diff --cached --quiet; then
+            git commit -m "Materialize verified Foxmori image assets"
+            git push origin HEAD:main
+          fi
+      - name: Package verified build
+        run: |
+          mkdir -p release
+          npm run pack:extension
+          cp extension-pack.zip release/Rdown-connector-v0.0.1-alpha.1.zip
+          (cd web/dist && zip -qr ../../release/Rdown-web-v0.0.1-alpha.1.zip .)
+          git archive --format=zip -o release/Rdown-source-v0.0.1-alpha.1.zip HEAD
+          (cd release && sha256sum *.zip > SHA256SUMS.txt)
+      - name: Publish initial alpha once
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view v0.0.1-alpha.1 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo 'Initial alpha already exists; verification completed without changing it.'
+            exit 0
+          fi
+          gh release create v0.0.1-alpha.1 release/*.zip release/SHA256SUMS.txt             --repo "$GITHUB_REPOSITORY" --target "$(git rev-parse HEAD)"             --title "Rdown v0.0.1-alpha.1 — Foxmori public alpha"             --notes-file RELEASE_NOTES.md --prerelease --latest=false

@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Build output
+web/dist/
+
+# Runtime data
+data/
+downloads/
+
+# Dev scratch
+.scratch/
+.research/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Private local configuration and publication artifacts
+.env
+.env.*
+!.env.example
+*.log
+release/
+*.zip
+bin/*.exe
+bin/*.gz
