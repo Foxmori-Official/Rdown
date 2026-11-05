@@ -1,0 +1,80 @@
+{
+  "name": "rdown",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Rdown - unified download manager: aria2 engine + HLS/DASH stream engine + browser capture",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "node server/src/index.js",
+    "build:web": "npm --prefix web run build",
+    "start": "node server/src/index.js",
+    "dev-electron": "electron electron/main.cjs",
+    "pack": "electron-builder",
+    "pack:extension": "node tools/pack-extension.mjs",
+    "test": "node test/extension-test.mjs && node test/extension-ui-test.mjs && node test/i18n-check.mjs && node test/i18n-switch-test.mjs && node test/web-i18n-check.mjs && node test/unit-convert-test.mjs && node --test --test-concurrency=3 test/reliability/*.test.mjs",
+    "test:web-build": "npm run build:web && node --test test/performance/*.test.mjs",
+    "prepare": "node .publication/restore-assets.mjs"
+  },
+  "devDependencies": {
+    "electron": "^39.8.10",
+    "electron-builder": "^26.15.3",
+    "sharp": "^0.35.5"
+  },
+  "build": {
+    "appId": "com.aimao.rdown",
+    "productName": "Rdown",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "electron/**/*",
+      "server/**/*",
+      "web/**/*",
+      "bin/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "server",
+        "to": "app/server"
+      },
+      {
+        "from": "web/public",
+        "to": "app/web/public"
+      },
+      {
+        "from": "bin",
+        "to": "app/bin"
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "web/public/logo.png"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false,
+      "shortcutName": "Rdown"
+    },
+    "protocols": [
+      {
+        "name": "Magnet URI",
+        "role": "Viewer",
+        "schemes": [
+          "magnet"
+        ]
+      }
+    ],
+    "fileAssociations": [
+      {
+        "ext": "torrent",
+        "name": "BitTorrent File",
+        "role": "Viewer",
+        "icon": "web/public/logo.png"
+      }
+    ]
+  }
+}
